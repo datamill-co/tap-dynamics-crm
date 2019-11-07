@@ -27,8 +27,6 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
     stream_name = stream.tap_stream_id
     last_datetime = get_bookmark(state, stream_name, start_date)
 
-    LOGGER.info('{} - Syncing data since {}'.format(stream.tap_stream_id, last_datetime))
-
     write_schema(stream)
 
     max_modified = last_datetime
@@ -38,8 +36,14 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
     query = service.query(entitycls)
 
     if hasattr(entitycls, MODIFIED_DATE_FIELD):
-        query.filter(getattr(entitycls, MODIFIED_DATE_FIELD) >= singer.utils.strptime_with_tz(last_datetime))
-        query.order_by(getattr(entitycls, MODIFIED_DATE_FIELD).asc())
+        LOGGER.info('{} - Syncing data since {}'.format(stream.tap_stream_id, last_datetime))
+        query = (
+            query
+            .filter(getattr(entitycls, MODIFIED_DATE_FIELD) >= singer.utils.strptime_with_tz(last_datetime))
+            .order_by(getattr(entitycls, MODIFIED_DATE_FIELD).asc())
+        )
+    else:
+        LOGGER.info('{} - Syncing using full replication'.format(stream.tap_stream_id))
 
     schema = stream.schema.to_dict()
     with metrics.record_counter(stream.tap_stream_id) as counter:
