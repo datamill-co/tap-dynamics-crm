@@ -8,20 +8,24 @@ from tap_dynamics.discover import discover
 
 LOGGER = singer.get_logger()
 
-MODIFIED_DATE_FIELD = 'modifiedon'
+MODIFIED_DATE_FIELD = "modifiedon"
+
 
 def get_bookmark(state, stream_name, default):
-    return state.get('bookmarks', {}).get(stream_name, default)
+    return state.get("bookmarks", {}).get(stream_name, default)
+
 
 def write_bookmark(state, stream_name, value):
-    if 'bookmarks' not in state:
-        state['bookmarks'] = {}
-    state['bookmarks'][stream_name] = value
+    if "bookmarks" not in state:
+        state["bookmarks"] = {}
+    state["bookmarks"][stream_name] = value
     singer.write_state(state)
+
 
 def write_schema(stream):
     schema = stream.schema.to_dict()
     singer.write_schema(stream.tap_stream_id, schema, stream.key_properties)
+
 
 def sync_stream(service, catalog, state, start_date, stream, mdata):
     stream_name = stream.tap_stream_id
@@ -36,41 +40,45 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
     query = service.query(entitycls)
 
     if hasattr(entitycls, MODIFIED_DATE_FIELD):
-        LOGGER.info('{} - Syncing data since {}'.format(stream.tap_stream_id, last_datetime))
-        query = (
-            query
-            .filter(getattr(entitycls, MODIFIED_DATE_FIELD) >= singer.utils.strptime_with_tz(last_datetime))
-            .order_by(getattr(entitycls, MODIFIED_DATE_FIELD).asc())
+        LOGGER.info(
+            "{} - Syncing data since {}".format(stream.tap_stream_id, last_datetime)
         )
+        query = query.filter(
+            getattr(entitycls, MODIFIED_DATE_FIELD)
+            >= singer.utils.strptime_with_tz(last_datetime)
+        ).order_by(getattr(entitycls, MODIFIED_DATE_FIELD).asc())
     else:
-        LOGGER.info('{} - Syncing using full replication'.format(stream.tap_stream_id))
+        LOGGER.info("{} - Syncing using full replication".format(stream.tap_stream_id))
 
     schema = stream.schema.to_dict()
     with metrics.record_counter(stream.tap_stream_id) as counter:
         for record in query:
             dict_record = {}
-            for odata_prop in entitycls.__odata_schema__['properties']:
-                prop_name = odata_prop['name']
+            for odata_prop in entitycls.__odata_schema__["properties"]:
+                prop_name = odata_prop["name"]
                 value = getattr(record, prop_name)
                 if isinstance(value, datetime):
                     value = singer.utils.strftime(value)
                 dict_record[prop_name] = value
 
-            if MODIFIED_DATE_FIELD in dict_record and dict_record[MODIFIED_DATE_FIELD] > max_modified:
-                    max_modified = dict_record[MODIFIED_DATE_FIELD]
+            if (
+                MODIFIED_DATE_FIELD in dict_record
+                and dict_record[MODIFIED_DATE_FIELD] > max_modified
+            ):
+                max_modified = dict_record[MODIFIED_DATE_FIELD]
 
             with Transformer() as transformer:
-                dict_record = transformer.transform(dict_record,
-                                               schema,
-                                               mdata)
+                dict_record = transformer.transform(dict_record, schema, mdata)
             singer.write_record(stream.tap_stream_id, dict_record)
             counter.increment()
 
     write_bookmark(state, stream_name, max_modified)
 
-def update_current_stream(state, stream_name=None):  
-    set_currently_syncing(state, stream_name) 
+
+def update_current_stream(state, stream_name=None):
+    set_currently_syncing(state, stream_name)
     singer.write_state(state)
+
 
 def sync(service, catalog, state, start_date):
     if not catalog:
