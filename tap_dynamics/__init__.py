@@ -64,7 +64,7 @@ class DynamicsAuth(requests.auth.AuthBase):
             )
 
             if response.status_code != 200:
-                raise Exception("Non-200 response fetching Dynamics access token")
+                raise Exception(response.text)
 
             data = response.json()
 
