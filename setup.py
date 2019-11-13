@@ -10,7 +10,7 @@ setup(
     install_requires=[
         "requests==2.22.0",
         "singer-python==5.8.1",
-        "odata @ git+https://git@github.com/tuomur/python-odata.git#egg=odata-0.2",
+        "odata @ git+https://git@github.com/dreamdata/python-odata.git#egg=odata-0.3",
     ],
     entry_points="""
           [console_scripts]
