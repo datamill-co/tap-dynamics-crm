@@ -4,7 +4,7 @@ import singer
 from singer import metrics, metadata, Transformer
 from singer.bookmarks import set_currently_syncing
 
-from tap_dynamics.discover import discover
+from tap_dynamics.discover import discover, get_optionset_metadata, get_optionset_fieldname
 
 LOGGER = singer.get_logger()
 
@@ -46,6 +46,7 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
         LOGGER.info('{} - Syncing using full replication'.format(stream.tap_stream_id))
 
     schema = stream.schema.to_dict()
+    optionset_map = get_optionset_metadata(service, stream.tap_stream_id)
     with metrics.record_counter(stream.tap_stream_id) as counter:
         for record in query:
             dict_record = {}
@@ -56,14 +57,21 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
                     value = singer.utils.strftime(value)
                 dict_record[prop_name] = value
 
+                if prop_name in optionset_map:
+                    label_prop_name = get_optionset_fieldname(prop_name)
+                    if value is None:
+                        dict_record[label_prop_name] = None
+                    else:
+                        dict_record[label_prop_name] = optionset_map[prop_name][value]
+
             if MODIFIED_DATE_FIELD in dict_record and dict_record[MODIFIED_DATE_FIELD] > max_modified:
                     max_modified = dict_record[MODIFIED_DATE_FIELD]
 
             with Transformer() as transformer:
-                dict_record = transformer.transform(dict_record,
-                                               schema,
-                                               mdata)
-            singer.write_record(stream.tap_stream_id, dict_record)
+                dict_record_t = transformer.transform(dict_record,
+                                                      schema,
+                                                      mdata)
+            singer.write_record(stream.tap_stream_id, dict_record_t)
             counter.increment()
 
     write_bookmark(state, stream_name, max_modified)

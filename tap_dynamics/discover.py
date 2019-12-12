@@ -1,6 +1,44 @@
 from singer.catalog import Catalog, CatalogEntry, Schema
 
-def get_schema(odata_schema):
+COLLECTION_LOOKUP_URL = "{}EntityDefinitions?$select=LogicalName&$filter=EntitySetName eq '{}'"
+OPTIONSET_METADATA_URL = "{}EntityDefinitions(LogicalName='{}')/Attributes/Microsoft.Dynamics.CRM.PicklistAttributeMetadata?$select=LogicalName&$expand=OptionSet,GlobalOptionSet"
+OPTIONSET_MAP = {}
+
+def get_optionset_metadata(service, entity_set_name):
+    global OPTIONSET_MAP
+
+    if entity_set_name in OPTIONSET_MAP:
+        return OPTIONSET_MAP[entity_set_name]
+
+    entity_optionset_map = {}
+
+    response = service.default_context.connection._do_get(COLLECTION_LOOKUP_URL.format(service.url, entity_set_name))
+
+    if response.status_code == 200:
+        data = response.json()['value']
+        if data:
+            entity_name = data[0]['LogicalName']
+            response = service.default_context.connection._do_get(OPTIONSET_METADATA_URL.format(service.url, entity_name))
+
+            if response.status_code != 404:
+                response.raise_for_status()
+                metadata = response.json()['value']
+                for prop in metadata:
+                    field_options = {}
+                    for option in prop['OptionSet']['Options']:
+                         field_options[option['Value']] = option['Label']['UserLocalizedLabel']['Label']
+                    for option in prop['GlobalOptionSet']['Options']:
+                         field_options[option['Value']] = option['Label']['UserLocalizedLabel']['Label']
+                    entity_optionset_map[prop['LogicalName']] = field_options
+
+    OPTIONSET_MAP[entity_set_name] = entity_optionset_map
+
+    return entity_optionset_map
+
+def get_optionset_fieldname(field_name):
+    return field_name + '_label'
+
+def get_schema(odata_schema, optionset_map):
     json_props = {}
     metadata = []
     pks = []
@@ -40,6 +78,18 @@ def get_schema(odata_schema):
 
         json_props[prop_name] = prop_json_schema
 
+        if prop_name in optionset_map:
+            optionset_fieldname = get_optionset_fieldname(prop_name)
+            json_props[optionset_fieldname] = {
+                'type': ['null', 'string']
+            }
+            metadata.append({
+                'breadcrumb': ['properties', optionset_fieldname],
+                'metadata': {
+                    'inclusion': 'available'
+                }
+            })
+
     json_schema = {
         'type': 'object',
         'additionalProperties': False,
@@ -52,7 +102,8 @@ def discover(service):
     catalog = Catalog([])
 
     for entity_name, entity in service.entities.items():
-        schema_dict, metadata, pks = get_schema(entity.__odata_schema__)
+        optionset_map = get_optionset_metadata(service, entity_name)
+        schema_dict, metadata, pks = get_schema(entity.__odata_schema__, optionset_map)
         schema = Schema.from_dict(schema_dict)
 
         catalog.streams.append(CatalogEntry(
