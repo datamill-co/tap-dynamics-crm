@@ -1,5 +1,19 @@
 from singer.catalog import Catalog, CatalogEntry, Schema
 
+selected_tables = [
+    "accounts",
+    "campaignactivities",
+    "campaignactivityitems",
+    "campaignitems",
+    "campaignresponses",
+    "campaigns",
+    "emails",
+    "phonecalls",
+    "leads",
+    "opportunities",
+    "contacts",
+]
+
 
 def get_schema(odata_schema):
     json_props = {}
@@ -52,6 +66,8 @@ def discover(service):
     catalog = Catalog([])
 
     for entity_name, entity in service.entities.items():
+        if entity_name not in selected_tables:
+            continue
         schema_dict, metadata, pks = get_schema(entity.__odata_schema__)
         schema = Schema.from_dict(schema_dict)
 
