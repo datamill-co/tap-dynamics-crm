@@ -78,6 +78,9 @@ def discover(service):
                 key_properties=pks,
                 schema=schema,
                 metadata=metadata,
+                replication_method="INCREMENTAL"
+                if schema_dict.get("properties", None).get("createdon", None)
+                else "FULL_TABLE",
             )
         )
 
