@@ -33,8 +33,7 @@ def do_discover(service):
 
     LOGGER.info("Starting discover")
     catalog = discover(service)
-    json.dump(catalog.to_dict(), sys.stdout, indent=2)
-    LOGGER.info("Finished discover")
+    return catalog
 
 
 class DynamicsAuth(requests.auth.AuthBase):
