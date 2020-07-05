@@ -25,10 +25,9 @@ def get_schema(odata_schema):
         json_type = "string"
         json_format = None
 
-        inclusion = "available"
+        inclusion = "automatic"
         if odata_prop["is_primary_key"] == True:
             pks.append(prop_name)
-            inclusion = "automatic"
 
         metadata.append(
             {
@@ -69,6 +68,7 @@ def discover(service):
         if entity_name not in selected_tables:
             continue
         schema_dict, metadata, pks = get_schema(entity.__odata_schema__)
+        metadata.append({"breadcrumb": [], "metadata": {"selected": True}})
         schema = Schema.from_dict(schema_dict)
 
         catalog.streams.append(
