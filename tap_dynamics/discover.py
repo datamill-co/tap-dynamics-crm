@@ -2,12 +2,7 @@ from singer.catalog import Catalog, CatalogEntry, Schema
 
 selected_tables = [
     "accounts",
-    "campaignactivities",
-    "campaignactivityitems",
-    "campaignitems",
-    "campaignresponses",
     "campaigns",
-    "emails",
     "phonecalls",
     "leads",
     "opportunities",
