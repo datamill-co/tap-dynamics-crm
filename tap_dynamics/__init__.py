@@ -33,8 +33,7 @@ def do_discover(service):
 
     LOGGER.info("Starting discover")
     catalog = discover(service)
-    json.dump(catalog.to_dict(), sys.stdout, indent=2)
-    LOGGER.info("Finished discover")
+    return catalog
 
 
 class DynamicsAuth(requests.auth.AuthBase):
@@ -89,13 +88,11 @@ def main():
     service = ODataService(
         url, reflect_entities=True, auth=DynamicsAuth(parsed_args.config)
     )
-
+    catalog = parsed_args.catalog or do_discover(service)
     if parsed_args.discover:
-        do_discover(service)
+        json.dump(catalog.to_dict(), sys.stdout, indent=2)
+
     else:
         sync(
-            service,
-            parsed_args.catalog,
-            parsed_args.state,
-            parsed_args.config["start_date"],
+            service, catalog, parsed_args.state, parsed_args.config["start_date"],
         )
