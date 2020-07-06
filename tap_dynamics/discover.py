@@ -12,6 +12,7 @@ selected_tables = [
     "leads",
     "opportunities",
     "contacts",
+    "transactioncurrencies",
 ]
 
 
