@@ -8,6 +8,7 @@ selected_tables = [
     "opportunities",
     "contacts",
     "transactioncurrencies",
+    "salesorders",
 ]
 
 
