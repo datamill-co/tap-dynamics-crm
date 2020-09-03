@@ -9,6 +9,7 @@ selected_tables = [
     "contacts",
     "transactioncurrencies",
     "salesorders",
+    "systemusers",
 ]
 
 
