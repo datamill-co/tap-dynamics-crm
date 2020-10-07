@@ -1,4 +1,5 @@
 from datetime import datetime
+import time
 
 import singer
 from singer import metrics, metadata, Transformer
@@ -51,26 +52,27 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
         LOGGER.info("{} - Syncing using full replication".format(stream.tap_stream_id))
 
     schema = stream.schema.to_dict()
-    with metrics.record_counter(stream.tap_stream_id) as counter:
-        for record in query:
-            dict_record = {}
-            for odata_prop in entitycls.__odata_schema__["properties"]:
-                prop_name = odata_prop["name"]
-                value = getattr(record, prop_name)
-                if isinstance(value, datetime):
-                    value = singer.utils.strftime(value)
-                dict_record[prop_name] = value
+    with metrics.http_request_timer(stream.tap_stream_id):
+        with metrics.record_counter(stream.tap_stream_id) as counter:
+            for record in query:
+                dict_record = {}
+                for odata_prop in entitycls.__odata_schema__["properties"]:
+                    prop_name = odata_prop["name"]
+                    value = getattr(record, prop_name)
+                    if isinstance(value, datetime):
+                        value = singer.utils.strftime(value)
+                    dict_record[prop_name] = value
 
-            if MODIFIED_DATE_FIELD in dict_record:
-                if dict_record[MODIFIED_DATE_FIELD] > max_modified:
-                    max_modified = dict_record[MODIFIED_DATE_FIELD]
-                else:
-                    continue
+                if MODIFIED_DATE_FIELD in dict_record:
+                    if dict_record[MODIFIED_DATE_FIELD] > max_modified:
+                        max_modified = dict_record[MODIFIED_DATE_FIELD]
+                    else:
+                        continue
 
-            with Transformer() as transformer:
-                dict_record = transformer.transform(dict_record, schema, mdata)
-            singer.write_record(stream.tap_stream_id, dict_record)
-            counter.increment()
+                with Transformer() as transformer:
+                    dict_record = transformer.transform(dict_record, schema, mdata)
+                singer.write_record(stream.tap_stream_id, dict_record)
+                counter.increment()
 
     write_bookmark(state, stream_name, max_modified)
 
