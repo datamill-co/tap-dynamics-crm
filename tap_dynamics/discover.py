@@ -3,7 +3,6 @@ from singer.catalog import Catalog, CatalogEntry, Schema
 selected_tables = [
     "accounts",
     "campaigns",
-    "phonecalls",
     "leads",
     "opportunities",
     "contacts",
