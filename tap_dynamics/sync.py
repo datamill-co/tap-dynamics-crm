@@ -51,6 +51,8 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
         LOGGER.info("{} - Syncing using full replication".format(stream.tap_stream_id))
 
     schema = stream.schema.to_dict()
+
+    count = 0
     with metrics.http_request_timer(stream.tap_stream_id):
         with metrics.record_counter(stream.tap_stream_id) as counter:
             for record in query:
@@ -72,6 +74,10 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
                     dict_record = transformer.transform(dict_record, schema, mdata)
                 singer.write_record(stream.tap_stream_id, dict_record)
                 counter.increment()
+
+                count += 1
+                if count % 5000 == 0:
+                    write_bookmark(state, stream_name, max_modified)
 
     write_bookmark(state, stream_name, max_modified)
 
