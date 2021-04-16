@@ -94,5 +94,12 @@ def main():
 
     else:
         sync(
-            service, catalog, parsed_args.state, parsed_args.config["start_date"],
+            service,
+            catalog,
+            parsed_args.state,
+            parsed_args.config["start_date"],
         )
+
+
+if __name__ == "__main__":
+    main()
