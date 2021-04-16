@@ -9,6 +9,19 @@ selected_tables = [
     "transactioncurrencies",
     "salesorders",
     "systemusers",
+    "msdyncrm_linkedinaccounts",
+    "msdyncrm_linkedinactivities",
+    "msdyncrm_linkedincampaigns",
+    "msdyncrm_linkedinconfigurations",
+    "msdyncrm_linkedinfieldmappings",
+    "msdyncrm_linkedinformanswers",
+    "msdyncrm_linkedinformquestions",
+    "msdyncrm_linkedinforms",
+    "msdyncrm_linkedinformsubmissions",
+    "msdyncrm_linkedinleadmatchingstrategies",
+    "msdyncrm_linkedinuserprofile_accountset",
+    "msdyncrm_linkedinuserprofiles",
+    "msdyncrm_msdyncrm_linkedinlms_fieldmappingset",
 ]
 
 
