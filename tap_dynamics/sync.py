@@ -106,6 +106,15 @@ def _sync_stream_incremental(service, entitycls, start):
 
 
 def _sync_window(entitycls, query, f, t):
+    """
+    Synchronizes data for the given entitycls in the window [f:t].
+
+    Should the request for the window result in a response larger than 100MB,
+    the window will be split in half, and new requests for the first and second
+    half of the window will be tried instead. This process is done recursively,
+    until one such window is found which results in a small enough response.
+    If the window is shrunk to the size of f < 1ms < t, an Exception is raised.
+    """
     if t - f < timedelta(milliseconds=1):
         raise Exception("unable to get data in a 1ms window")
 
