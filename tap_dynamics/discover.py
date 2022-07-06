@@ -22,6 +22,8 @@ selected_tables = [
     "msdyncrm_linkedinuserprofile_accountset",
     "msdyncrm_linkedinuserprofiles",
     "msdyncrm_msdyncrm_linkedinlms_fieldmappingset",
+    "appointments",
+    "phonecalls",
 ]
 
 
