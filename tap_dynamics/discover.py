@@ -24,6 +24,8 @@ selected_tables = [
     "msdyncrm_msdyncrm_linkedinlms_fieldmappingset",
     "appointments",
     "phonecalls",
+    "activitypointers",
+    "activityparties"
 ]
 
 
