@@ -24,6 +24,8 @@ REQUIRED_CONFIG_KEYS = [
 ]
 
 
+class InvalidCredentials(Exception):
+    pass
 def do_discover(service):
     LOGGER.info("Testing authentication")
     try:
@@ -61,7 +63,11 @@ class DynamicsAuth(requests.auth.AuthBase):
                     "resource": self.__resource,
                 },
             )
-
+            if response.status_code == 400:
+                error=response.json()
+                if error.get("error")=="invalid_grant":
+                    raise InvalidCredentials(error)
+        
             if response.status_code != 200:
                 raise Exception(response.text)
 
@@ -84,10 +90,14 @@ def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
     url = "https://{}.dynamics.com/api/data/v9.0/".format(parsed_args.config["domain"])
+    try:
+        service = ODataService(
+            url, reflect_entities=True, auth=DynamicsAuth(parsed_args.config)
+        )
+    except InvalidCredentials as e:
+            LOGGER.error(e)
+            sys.exit(5)
 
-    service = ODataService(
-        url, reflect_entities=True, auth=DynamicsAuth(parsed_args.config)
-    )
     catalog = parsed_args.catalog or do_discover(service)
     if parsed_args.discover:
         json.dump(catalog.to_dict(), sys.stdout, indent=2)
@@ -99,7 +109,7 @@ def main():
             parsed_args.state,
             parsed_args.config["start_date"],
         )
-
+        
 
 if __name__ == "__main__":
     main()
