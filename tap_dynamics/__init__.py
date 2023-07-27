@@ -89,7 +89,7 @@ class DynamicsAuth(requests.auth.AuthBase):
 def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
-    url = "https://{}.dynamics.com/api/data/v9.0/".format(parsed_args.config["domain"])
+    url = "https://{}.dynamics.com/api/data/v9.2/".format(parsed_args.config["domain"])
     try:
         service = ODataService(
             url, reflect_entities=True, auth=DynamicsAuth(parsed_args.config)
