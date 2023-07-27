@@ -89,10 +89,18 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
 
 def _sync_stream_incremental(service, entitycls, start):
     base_query = service.query(entitycls)
+    if entitycls.__odata_schema__["name"] == "activitypointer":
+        base_query = base_query.filter(
+            base_query.or_(
+                entitycls.activitytypecode == "phonecall",
+                entitycls.activitytypecode == "appointment",
+            )
+        )
+
     base_query = base_query.order_by(getattr(entitycls, MODIFIED_DATE_FIELD).asc())
 
     now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-    delta = timedelta(days=10)
+    delta = timedelta(days=30)
 
     f, t = start, start + delta
 
