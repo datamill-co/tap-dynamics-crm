@@ -92,7 +92,7 @@ def _sync_stream_incremental(service, entitycls, start):
     base_query = base_query.order_by(getattr(entitycls, MODIFIED_DATE_FIELD).asc())
 
     now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-    delta = timedelta(days=30)
+    delta = timedelta(days=10)
 
     f, t = start, start + delta
 
