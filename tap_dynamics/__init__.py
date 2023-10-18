@@ -26,6 +26,8 @@ REQUIRED_CONFIG_KEYS = [
 
 class InvalidCredentials(Exception):
     pass
+
+
 def do_discover(service):
     LOGGER.info("Testing authentication")
     try:
@@ -37,6 +39,13 @@ def do_discover(service):
     catalog = discover(service)
     return catalog
 
+def sync_properties(catalog: singer.Catalog):
+    for stream in catalog.streams:
+        if stream.tap_stream_id not in ["leads", "accounts", "contacts", "opportunities"]:
+            continue
+        stream_name = f"{stream.tap_stream_id}_properties"
+        schema = stream.schema.to_dict()
+        singer.write_record(stream_name, schema)
 
 class DynamicsAuth(requests.auth.AuthBase):
     def __init__(self, config):
@@ -67,7 +76,7 @@ class DynamicsAuth(requests.auth.AuthBase):
                 error=response.json()
                 if error.get("error")=="invalid_grant":
                     raise InvalidCredentials(error)
-        
+
             if response.status_code != 200:
                 raise Exception(response.text)
 
@@ -97,11 +106,10 @@ def main():
     except InvalidCredentials as e:
             LOGGER.error(e)
             sys.exit(5)
-
     catalog = parsed_args.catalog or do_discover(service)
+    sync_properties(catalog)
     if parsed_args.discover:
         json.dump(catalog.to_dict(), sys.stdout, indent=2)
-
     else:
         sync(
             service,
@@ -109,7 +117,6 @@ def main():
             parsed_args.state,
             parsed_args.config["start_date"],
         )
-        
 
 if __name__ == "__main__":
     main()
