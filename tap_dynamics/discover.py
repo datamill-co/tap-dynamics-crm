@@ -10,6 +10,7 @@ selected_tables = [
     "systemusers",
     "msdyncrm_linkedinformsubmissions",
     "activitypointers",
+    "businessunits"
 ]
 
 
@@ -61,14 +62,12 @@ def get_schema(odata_schema):
 
 def discover(service):
     catalog = Catalog([])
-
     for entity_name, entity in service.entities.items():
         if entity_name not in selected_tables:
             continue
-        schema_dict, metadata, pks = get_schema(entity.__odata_schema__)
+        schema_dict, metadata, pks = get_schema(entity.__odata_schema__)  
         metadata.append({"breadcrumb": [], "metadata": {"selected": True}})
         schema = Schema.from_dict(schema_dict)
-
         catalog.streams.append(
             CatalogEntry(
                 stream=entity_name,
@@ -77,9 +76,8 @@ def discover(service):
                 schema=schema,
                 metadata=metadata,
                 replication_method="INCREMENTAL"
-                if schema_dict.get("properties", None).get("createdon", None)
+                if schema_dict.get("properties", {}).get("createdon", None)
                 else "FULL_TABLE",
             )
         )
-
     return catalog
