@@ -29,7 +29,7 @@ def write_schema(stream):
     singer.write_schema(stream.tap_stream_id, schema, stream.key_properties)
 
 
-def sync_stream(service, catalog, state, start_date, stream, mdata):
+def sync_stream(service, state, start_date, stream, mdata):
     stream_name = stream.tap_stream_id
     last_datetime = get_bookmark(state, stream_name, start_date)
 
@@ -156,16 +156,15 @@ def update_current_stream(state, stream_name=None):
     singer.write_state(state)
 
 
-def sync(service, catalog, state, start_date):
-    if not catalog:
-        catalog = discover(service)
-        selected_streams = catalog.streams
-    else:
-        selected_streams = catalog.get_selected_streams(state)
-
+def sync(service, selected_streams, state, start_date):
     for stream in selected_streams:
         mdata = metadata.to_map(stream.metadata)
         update_current_stream(state, stream.tap_stream_id)
-        sync_stream(service, catalog, state, start_date, stream, mdata)
+        sync_stream(service, state, start_date, stream, mdata)
+
+        if stream.tap_stream_id in ["leads", "accounts", "contacts", "opportunities"]:
+            stream_name = f"{stream.tap_stream_id}_properties"
+            schema = stream.schema.to_dict()
+            singer.write_record(stream_name, schema)
 
     update_current_stream(state)

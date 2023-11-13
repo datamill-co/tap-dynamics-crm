@@ -28,25 +28,6 @@ class InvalidCredentials(Exception):
     pass
 
 
-def do_discover(service):
-    LOGGER.info("Testing authentication")
-    try:
-        pass  ## TODO: test authentication
-    except:
-        raise Exception("Error testing Dynamics authentication")
-
-    LOGGER.info("Starting discover")
-    catalog = discover(service)
-    return catalog
-
-def sync_properties(catalog: singer.Catalog):
-    for stream in catalog.streams:
-        if stream.tap_stream_id not in ["leads", "accounts", "contacts", "opportunities"]:
-            continue
-        stream_name = f"{stream.tap_stream_id}_properties"
-        schema = stream.schema.to_dict()
-        singer.write_record(stream_name, schema)
-
 class DynamicsAuth(requests.auth.AuthBase):
     def __init__(self, config):
         self.__resource = "https://{}.dynamics.com".format(config["domain"])
@@ -73,8 +54,8 @@ class DynamicsAuth(requests.auth.AuthBase):
                 },
             )
             if response.status_code == 400:
-                error=response.json()
-                if error.get("error")=="invalid_grant":
+                error = response.json()
+                if error.get("error") == "invalid_grant":
                     raise InvalidCredentials(error)
 
             if response.status_code != 200:
@@ -104,19 +85,13 @@ def main():
             url, reflect_entities=True, auth=DynamicsAuth(parsed_args.config)
         )
     except InvalidCredentials as e:
-            LOGGER.error(e)
-            sys.exit(5)
-    catalog = parsed_args.catalog or do_discover(service)
-    sync_properties(catalog)
-    if parsed_args.discover:
-        json.dump(catalog.to_dict(), sys.stdout, indent=2)
-    else:
-        sync(
-            service,
-            catalog,
-            parsed_args.state,
-            parsed_args.config["start_date"],
-        )
+        LOGGER.error(e)
+        sys.exit(5)
+
+    catalog = discover(service, parsed_args.config.get("advanced_features_enabled", False))
+
+    sync(service, catalog.streams, parsed_args.state, parsed_args.config["start_date"])
+
 
 if __name__ == "__main__":
     main()

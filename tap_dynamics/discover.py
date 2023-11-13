@@ -1,10 +1,16 @@
 from singer.catalog import Catalog, CatalogEntry, Schema
+import singer
 
-selected_tables = [
+LOGGER = singer.get_logger()
+
+free_tables = [
     "accounts",
-    "leads",
     "opportunities",
     "contacts",
+]
+
+advanced_tables = [
+    "leads",
     "transactioncurrencies",
     "salesorders",
     "systemusers",
@@ -25,7 +31,7 @@ def get_schema(odata_schema):
         json_format = None
 
         inclusion = "automatic"
-        if odata_prop["is_primary_key"] == True:
+        if odata_prop["is_primary_key"]:
             pks.append(prop_name)
 
         metadata.append(
@@ -60,24 +66,31 @@ def get_schema(odata_schema):
     return json_schema, metadata, pks
 
 
-def discover(service):
+def discover(service, advanced_features_enabled=False):
     catalog = Catalog([])
+
+    selected_tables = free_tables.copy()
+    if advanced_features_enabled:
+        LOGGER.info("advanced features enabled for account")
+        selected_tables.extend(advanced_tables)
+
     for entity_name, entity in service.entities.items():
-        if entity_name not in selected_tables:
-            continue
-        schema_dict, metadata, pks = get_schema(entity.__odata_schema__)  
-        metadata.append({"breadcrumb": [], "metadata": {"selected": True}})
-        schema = Schema.from_dict(schema_dict)
-        catalog.streams.append(
-            CatalogEntry(
-                stream=entity_name,
-                tap_stream_id=entity_name,
-                key_properties=pks,
-                schema=schema,
-                metadata=metadata,
-                replication_method="INCREMENTAL"
-                if schema_dict.get("properties", {}).get("createdon", None)
-                else "FULL_TABLE",
+        if entity_name in selected_tables:
+            schema_dict, metadata, pks = get_schema(entity.__odata_schema__)
+            metadata.append({"breadcrumb": [], "metadata": {"selected": True}})
+            schema = Schema.from_dict(schema_dict)
+
+            catalog.streams.append(
+                CatalogEntry(
+                    stream=entity_name,
+                    tap_stream_id=entity_name,
+                    key_properties=pks,
+                    schema=schema,
+                    metadata=metadata,
+                    replication_method="INCREMENTAL"
+                    if schema_dict.get("properties", {}).get("createdon", None)
+                    else "FULL_TABLE",
+                )
             )
-        )
+
     return catalog
