@@ -7,16 +7,16 @@ free_tables = [
     "accounts",
     "opportunities",
     "contacts",
+    "systemusers",
 ]
 
 advanced_tables = [
     "leads",
     "transactioncurrencies",
     "salesorders",
-    "systemusers",
     "msdyncrm_linkedinformsubmissions",
     "activitypointers",
-    "businessunits"
+    "businessunits",
 ]
 
 
