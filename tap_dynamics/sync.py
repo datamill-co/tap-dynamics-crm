@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta
 import pytz
-
 import singer
 from singer import metrics, metadata, Transformer
 from singer.bookmarks import set_currently_syncing
 from odata import ODataError
-
+import requests
 from tap_dynamics.discover import discover
 
 LOGGER = singer.get_logger()
@@ -27,6 +26,23 @@ def write_bookmark(state, stream_name, value):
 def write_schema(stream):
     schema = stream.schema.to_dict()
     singer.write_schema(stream.tap_stream_id, schema, stream.key_properties)
+
+
+def sync_pick_lists(auth: requests.auth.AuthBase):
+    url = f"https://learnlight.crm4.dynamics.com/api/data/v9.0/stringmaps"
+    for record in paginate(auth, url):
+        singer.write_record("pick_lists", record)
+
+
+def paginate(auth, url):
+    while True:
+        response = requests.get(url=url, auth=auth)
+        data = response.json()
+        next_link = data.get("@odata.nextLink")
+        if not next_link:
+            break
+        url = next_link
+        yield from data.get("value", [])
 
 
 def sync_stream(service, state, start_date, stream, mdata):

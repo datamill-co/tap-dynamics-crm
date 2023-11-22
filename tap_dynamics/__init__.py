@@ -6,11 +6,10 @@ from datetime import datetime, timedelta
 
 import requests
 import singer
-from singer import metadata
 from odata import ODataService
 
 from tap_dynamics.discover import discover
-from tap_dynamics.sync import sync
+from tap_dynamics.sync import sync, sync_pick_lists
 
 LOGGER = singer.get_logger()
 
@@ -80,17 +79,21 @@ def main():
     parsed_args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
 
     url = "https://{}.dynamics.com/api/data/v9.2/".format(parsed_args.config["domain"])
+    auth = DynamicsAuth(parsed_args.config)
     try:
-        service = ODataService(
-            url, reflect_entities=True, auth=DynamicsAuth(parsed_args.config)
-        )
+        service = ODataService(url, reflect_entities=True, auth=auth)
     except InvalidCredentials as e:
         LOGGER.error(e)
         sys.exit(5)
 
-    catalog = discover(service, parsed_args.config.get("advanced_features_enabled", False))
-
+    catalog = discover(
+        service, parsed_args.config.get("advanced_features_enabled", False)
+    )
     sync(service, catalog.streams, parsed_args.state, parsed_args.config["start_date"])
+
+    # pick lists items can not be queried via the OData service, so we need to sync them separately
+    # we always want to sync this data for all customers
+    sync_pick_lists(auth)
 
 
 if __name__ == "__main__":
