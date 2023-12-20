@@ -17,6 +17,7 @@ advanced_tables = [
     "msdyncrm_linkedinformsubmissions",
     "activitypointers",
     "businessunits",
+    "activityparties",
 ]
 
 
