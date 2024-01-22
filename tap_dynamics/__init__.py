@@ -56,6 +56,10 @@ class DynamicsAuth(requests.auth.AuthBase):
                 error = response.json()
                 if error.get("error") == "invalid_grant":
                     raise InvalidCredentials(error)
+                error_codes = error.get("error_codes", [])
+                if 50076 in error_codes:
+                    # https://login.microsoftonline.com/error?code=50076
+                    raise InvalidCredentials(error)
 
             if response.status_code != 200:
                 raise Exception(response.text)
